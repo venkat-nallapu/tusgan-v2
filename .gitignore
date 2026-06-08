@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+encoding-explanation/
+*.py[cod]
+*$py.class
+.venv_linux/
+build/
+dist/
+*.egg-info/
+
+# Jupyter Notebooks
+2019-*.ipynb
+2024-*.ipynb
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Data Files (Large or Generated)
+2019/
+2024/
+*.csv
+*.npz
+*.npy
+# Keep the small sample if needed, otherwise ignore all csv
+# !wgan-gp/TUS-2019-sample.csv
+
+# Model Checkpoints & Logs
+checkpoints/
+runs/
+samples/
+
+# Output & Evaluation
+synthetic_diaries.csv
+
+# IDEs & System
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
