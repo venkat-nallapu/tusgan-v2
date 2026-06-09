@@ -2,6 +2,7 @@ import streamlit as st
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from huggingface_hub import hf_hub_download
 import os
 import sys
 
@@ -10,7 +11,10 @@ sys.path.append(os.path.join(os.getcwd(), "wgan-gp"))
 from generator import Generator
 
 # CONFIG
-CHECKPOINT_PATH = "checkpoints/final.pt"
+CHECKPOINT_PATH = hf_hub_download(
+    repo_id="nallapuvenkat/tus-gan",   # create this on huggingface.co
+    filename="final.pt"
+)
 DATA_NPZ_PATH = "wgan-gp/tusgan_encoded.npz"
 ACT_MID = 50.0
 

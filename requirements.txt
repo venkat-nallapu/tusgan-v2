@@ -5,3 +5,5 @@ tensorboard
 matplotlib
 ipykernel
 scikit-learn
+huggingface_hub
+streamlit
