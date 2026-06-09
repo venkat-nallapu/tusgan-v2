@@ -15,7 +15,10 @@ CHECKPOINT_PATH = hf_hub_download(
     repo_id="nallapuvenkat/tus-gan",   # create this on huggingface.co
     filename="final.pt"
 )
-DATA_NPZ_PATH = "wgan-gp/tusgan_encoded.npz"
+DATA_NPZ_PATH = hf_hub_download(
+    repo_id="nallapuvenkat/tus-gan",   # create this on huggingface.co
+    filename="tusgan_encoded.npz"
+)
 ACT_MID = 50.0
 
 # Labels & Mappings
