@@ -1,16 +1,22 @@
+from xml.parsers.expat import model
+
 import streamlit as st
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 import sys
+from huggingface_hub import hf_hub_download
 
 # Add wgan-gp to path to import Generator
 sys.path.append(os.path.join(os.getcwd(), "wgan-gp"))
 from generator import Generator
 
 # CONFIG
-CHECKPOINT_PATH = "checkpoints/final.pt"
+# In dashboard.py, load like this:
+
+
+CHECKPOINT_PATH = hf_hub_download(repo_id="venkat-nallapu/tus-gan", filename="final.pt")
 DATA_NPZ_PATH = "wgan-gp/tusgan_encoded.npz"
 ACT_MID = 50.0
 

@@ -24,7 +24,27 @@ dist/
 # !wgan-gp/TUS-2019-sample.csv
 
 # Model Checkpoints & Logs
-checkpoints/
+checkpoints/epoch_0010.pth
+checkpoints/epoch_0020.pth
+checkpoints/epoch_0030.pth
+checkpoints/epoch_0040.pth
+checkpoints/epoch_0050.pth
+checkpoints/epoch_0060.pth
+checkpoints/epoch_0070.pth
+checkpoints/epoch_0080.pth
+checkpoints/epoch_0090.pth
+checkpoints/epoch_0100.pth
+checkpoints/epoch_0110.pth
+checkpoints/epoch_0120.pth
+checkpoints/epoch_0130.pth
+checkpoints/epoch_0140.pth
+checkpoints/epoch_0150.pth
+checkpoints/epoch_0160.pth
+checkpoints/epoch_0170.pth
+checkpoints/epoch_0180.pth
+checkpoints/epoch_0190.pth
+checkpoints/epoch_0200.pth
+
 runs/
 samples/
 
