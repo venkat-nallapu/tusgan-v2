@@ -70,7 +70,17 @@ def train(cfg):
     # Create checkpoints directory if it doesn't exist
     os.makedirs("checkpoints", exist_ok=True)
 
-    loader = DataLoader(dataset, batch_size=cfg["batch_size"], shuffle=True, drop_last=True)
+    # Optimize data loading for GPUs (pin_memory and num_workers)
+    num_workers = min(4, os.cpu_count() or 2)
+    loader = DataLoader(
+        dataset, 
+        batch_size=cfg["batch_size"], 
+        shuffle=True, 
+        drop_last=True,
+        num_workers=num_workers,
+        pin_memory=True if torch.cuda.is_available() else False
+    )
+
 
     G = Generator(
         noise_dim          = cfg["noise_dim"],
