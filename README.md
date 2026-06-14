@@ -1,60 +1,80 @@
-# TUS-GAN: Synthetic Time-Use Diary Generation
+# TUS-GAN: Time Use Survey Generative Adversarial Network (v2)
 
-TUS-GAN is a deep learning project that utilizes a **Conditional Wasserstein GAN with Gradient Penalty (WGAN-GP)** to synthesize realistic Time-Use Survey (TUS) diaries. By treating 24-hour activity sequences as "images," the model learns to generate daily routines that are demographically and geographically consistent with the India Time Use Survey (ITUS) 2019.
+TUS-GAN is a conditional generative model based on the **WGAN-GP (Wasserstein GAN with Gradient Penalty)** architecture, designed to synthesize realistic 24-hour activity diaries for individuals based on their demographic characteristics.
 
-## 🚀 Key Features
+---
 
-*   **WGAN-GP Architecture:** Employs Wasserstein loss and Gradient Penalty for superior training stability and convergence compared to standard GANs.
-*   **Conditional Generation:** Synthesizes diaries conditioned on 49 demographic dimensions (Age, Gender, Marital Status, Education, etc.) and learned District embeddings (71 districts).
-*   **Diary-as-Image Encoding:** Encodes 48 half-hour time slots into a structured tensor format `(N, 1, 48, 1)` suitable for convolutional architectures.
-*   **Advanced Modality:** Uses **Conditional Batch Normalization (CBN)** in the Generator to modulate internal features based on the respondent's profile.
+## 🚀 Version 2 (v2) Advancements & Architecture Updates
 
-## 📂 Project Structure
+Version 2 introduces major improvements in network stability, sequence coherence, and training flexibility:
 
-```text
-├── 2019/               # Raw and cleaned ITUS 2019 CSV data
-├── wgan-gp/            # Core GAN implementation
-│   ├── encode.ipynb    # Data preprocessing & tensor encoding pipeline
-│   ├── train.py        # Main training script (WGAN-GP)
-│   ├── generator.py    # Generator architecture (ConvTranspose2d + CBN)
-│   ├── critic.py       # Critic architecture (Conv2d)
-│   ├── generate.py     # Inference script for synthetic data production
-│   └── evaluate.py     # Evaluation script for distribution comparison
-├── checkpoints/        # Saved model snapshots (.pt)
-├── samples/            # Visual samples generated during training (.npy)
-└── evaluation_results/ # Plots comparing real vs. synthetic distributions
-```
+### 1. Advanced Architecture Upgrades
+* **Self-Attention Mechanism**: Integrated `SelfAttention2d` blocks inside both the Generator and Critic to capture long-range temporal correlations (e.g., how morning wake-up times correlate with bedtime).
+* **Spectral Normalization**: Wrapped Critic convolutional layers and final linear output in Spectral Norm to stabilize the Lipschitz constraint in combination with Gradient Penalty.
+* **Residual Connections**: Upgraded `UpsampleBlock` (Generator) and `DownsampleBlock` (Critic) with residual skip paths to prevent gradient decay and improve learning speed.
+* **Dual Learned Embeddings**: High-cardinality geographical inputs (**State Codes** and **District Codes**) are mapped to low-dimensional continuous embedding layers (8 and 16 dimensions).
 
-## 🛠️ Pipeline
+### 2. Enhanced Data Orientation
+The model processes the dataset structured as:
+* **9-Channel Diary Representation**: Transitioned from a single-intensity sequence to a 9-channel one-hot representation, mapping to the **9 Major Activity Divisions**.
+* **Dimensions**: Outputs and inputs are shaped as `(Batch, 9, 48, 1)` where $48$ represents 30-minute intervals covering a 24-hour day starting from 04:00 AM.
+* **Conditions Matrix**: The demographics vector $c$ includes binned age, gender, marital status, education level, activity status, day of week, sector, household size, consumer expenditure, and caregiving dummy variables.
 
-### 1. Data Preparation
-Run the `wgan-gp/encode.ipynb` notebook. It cleans the raw ITUS data, handles missing values, and produces `tusgan_encoded.npz`.
+---
 
-### 2. Training
-Execute the training script. It logs to TensorBoard and saves checkpoints every 10 epochs.
+## 📊 Dataset Keys & Schema
+
+The processed v2 dataset is stored in [2019/img-encode/tusgan_encode.npz](file:///home/venkat/projects/tusgan-v2/2019/img-encode/tusgan_encode.npz) and contains:
+
+| Key | Tensor Shape / Type | Description |
+| :--- | :--- | :--- |
+| `diary_tensor` | `(445268, 9, 48, 1)` | Float32, scaled to `[-1, 1]` for GAN training |
+| `cond_vector` | `(445268, 83)` | One-hot encoded demographic features |
+| `district_ids` | `(445268,)` | Long integers (0-70) mapping to districts |
+| `state_ids` | `(445268,)` | Long integers (0-35) mapping to states |
+| `num_districts`| Scalar | Total count of districts (71) |
+| `num_states` | Scalar | Total count of states (36) |
+
+---
+
+## 🛠️ Pipeline & Training Adjustments
+
+* **TensorBoard Integration**: Fully tracks average `Loss/Critic`, `Loss/Generator`, and `Loss/GradientPenalty` per epoch, as well as learning rates.
+* **Visual Evaluation**: Every 10 epochs, a Matplotlib figure comparing a generated synthetic diary heatmap with a real reference diary heatmap is logged directly to TensorBoard.
+* **Step Learning Rate Scheduler**: Schedulers decrease learning rates by half every 30 epochs (`StepLR(step_size=30, gamma=0.5)`) to stabilize late-stage convergence.
+* **CLI Arguments & Argument Parsing**: Standardized parameter passing for customizing epochs, learning rates, batch sizes, and dataset paths.
+* **Subset Debugging Flag**: Added a `--subset <N>` parameter to train on only the first $N$ samples of the dataset. This allows fast, low-overhead testing on CPU platforms.
+
+---
+
+## 🚀 Setup & Execution
+
+### 1. Install Dependencies
+Ensure PyTorch, NumPy, Pandas, Matplotlib, and TensorBoard are installed:
 ```bash
-python wgan-gp/train.py --epochs 200 --batch 128
+source .venv-wgan/bin/activate
+pip install -r requirements.txt
 ```
 
-### 3. Generation
-Generate a synthetic CSV dataset from the final trained model:
+### 2. Fast CPU Prototyping
+Verify the pipeline works by running 5 epochs on a subset of 5,000 samples:
 ```bash
-python wgan-gp/generate.py
+python wgan-gp/train.py --data-path 2019/img-encode/tusgan_encode.npz --epochs 5 --batch-size 256 --subset 5000
 ```
 
-### 4. Evaluation
-Compare the synthetic data against the real data to validate statistical fidelity:
+### 3. Full GPU Training
+Train the complete model with optimized batch configurations on a CUDA GPU:
 ```bash
-python wgan-gp/evaluate.py
+python wgan-gp/train.py --data-path 2019/img-encode/tusgan_encode.npz --epochs 100 --batch-size 256
 ```
-This produces histograms and time-use comparison plots in the `evaluation_results/` directory.
 
-## 📊 Concepts: Diary-as-Image
-The core innovation is mapping a 24-hour day into 48 discrete slots. Each slot is encoded as a normalized activity code in the range `[-1, +1]`. This allows the GAN to use 2D Convolutions to learn the temporal "shapes" of a day—for example, the characteristic "block" of sleep at night or work during the day.
+### 4. Visualizing Training Progress
+Launch TensorBoard to view loss curves and synthetic diary heatmaps:
+```bash
+tensorboard --logdir runs/
+```
 
-## 📝 Requirements
-*   Python 3.12+
-*   PyTorch
-*   Pandas / Numpy
-*   Matplotlib (for evaluation)
-*   TensorBoard (for logging)
+### 5. Launch the Streamlit Dashboard
+```bash
+streamlit run dashboard.py
+```

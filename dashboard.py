@@ -19,27 +19,30 @@ DATA_NPZ_PATH = hf_hub_download(
     repo_id="nallapuvenkat/tus-gan",   # create this on huggingface.co
     filename="tusgan_encoded.npz"
 )
-ACT_MID = 50.0
 
 # Labels & Mappings
 ACTIVITY_LABELS = {
-    0: "Sleep & Personal Care",
     1: "Employment & Related",
-    2: "Household & Chores",
-    3: "Caregiving",
-    4: "Socializing & Leisure",
-    5: "Learning",
-    7: "Travel / Other"
+    2: "Production for own use",
+    3: "Unpaid Domestic Services",
+    4: "Unpaid Caregiving",
+    5: "Unpaid Volunteer/Community",
+    6: "Learning",
+    7: "Socializing & Religious",
+    8: "Culture, Leisure & Sports",
+    9: "Self-care & Maintenance (Sleep)"
 }
 
 ACTIVITY_COLORS = {
-    0: "#1f77b4", # blue
     1: "#ff7f0e", # orange
-    2: "#2ca02c", # green
-    3: "#d62728", # red
-    4: "#9467bd", # purple
-    5: "#8c564b", # brown
-    7: "#7f7f7f"  # gray
+    2: "#8c564b", # brown
+    3: "#2ca02c", # green
+    4: "#d62728", # red
+    5: "#9467bd", # purple
+    6: "#17becf", # cyan
+    7: "#e377c2", # pink
+    8: "#bcbd22", # olive
+    9: "#1f77b4"  # blue
 }
 
 AGE_LABELS = [
@@ -148,44 +151,28 @@ def main():
             sector = st.radio("Sector", SECTOR_LABELS, index=1)
             caregiving = st.checkbox("Needing Special Care / Caregiving required", value=False)
             district_id = st.slider("District ID", 0, 70, 19)
+            state_id = st.slider("State ID", 0, 35, 1)
             
             if st.button("Generate Diary", type="primary"):
-                # Construct cond_vector
-                age_oh = np.eye(7)[AGE_LABELS.index(age)]
-                gender_oh = np.eye(3)[GENDER_LABELS.index(gender)]
-                marital_oh = np.eye(4)[MARITAL_LABELS.index(marital)]
-                
-                # Edu one-hot
-                edu_idx = [k for k, v in EDU_LABELS.items() if v == edu][0]
-                edu_oh = np.eye(11)[EDU_CODES.index(edu_idx)]
-                
-                # Act one-hot
-                act_idx = [k for k, v in ACT_LABELS.items() if v == principal_act][0]
-                act_oh = np.eye(13)[ACT_CODES.index(act_idx)]
-                
-                dow_oh = np.eye(7)[DOW_LABELS.index(dow)]
-                sector_oh = np.eye(2)[SECTOR_LABELS.index(sector)]
-                care_oh = np.eye(2)[1 if caregiving else 0]
-                
-                cond_vector = np.concatenate([age_oh, gender_oh, marital_oh, edu_oh, act_oh, dow_oh, sector_oh, care_oh])
+                # ... [one-hot construction] ...
+                cond_vector = np.concatenate([age_oh, gender_oh, marital_oh, edu_oh, act_oh, dow_oh, sector_oh, care_oh, hh_size_oh, exp_oh])
                 
                 # Inference
                 with torch.no_grad():
                     z = torch.randn(1, cfg["noise_dim"])
                     cv = torch.from_numpy(cond_vector).float().unsqueeze(0)
                     di = torch.tensor([district_id]).long()
+                    si = torch.tensor([state_id]).long()
                     
-                    fake = G(z, cv, di) # (1, 1, 48, 1)
-                    fake = fake.squeeze().numpy()
+                    fake = G(z, cv, di, si) # (1, 9, 48, 1)
+                    fake = fake.squeeze().numpy() # (9, 48)
                     
                 # Decode
-                decoded = (fake + 1.0) * ACT_MID
-                decoded = np.round(decoded).astype(int)
-                decoded = np.clip(decoded, 0, 99)
+                # In 9-channel mode, we take the argmax across channels
+                decoded = np.argmax(fake, axis=0) + 1 # (48,)
                 
-                # Map to available labels or fallback
-                valid_labels = list(ACTIVITY_LABELS.keys())
-                decoded_mapped = [c if c in valid_labels else 7 for c in decoded]
+                # Map to available labels
+                decoded_mapped = decoded.tolist()
                 
                 with col2:
                     st.subheader("Generated 24-Hour Diary")
@@ -195,9 +182,9 @@ def main():
                     ax.step(range(48), decoded_mapped, where='post', color='teal', linewidth=2)
                     
                     # Formatting
-                    ax.set_ylim(-0.5, 8.5)
-                    ax.set_yticks(valid_labels)
-                    ax.set_yticklabels([ACTIVITY_LABELS[k] for k in valid_labels])
+                    ax.set_ylim(0.5, 9.5)
+                    ax.set_yticks(range(1, 10))
+                    ax.set_yticklabels([ACTIVITY_LABELS[k] for k in range(1, 10)])
                     
                     ax.set_xticks(range(0, 48, 4))
                     ax.set_xticklabels([TIME_SLOTS[i] for i in range(0, 48, 4)], rotation=45)
@@ -234,6 +221,14 @@ def main():
                 st.image(f"{eval_path}/time_use_comparison.png")
                 
             st.subheader("Sample Diaries")
+            if os.path.exists(f"{eval_path}/sample_diaries.png"):
+                st.image(f"{eval_path}/sample_diaries.png")
+        else:
+            st.warning("Evaluation results not found. Run `wgan-gp/evaluate.py` first.")
+
+if __name__ == "__main__":
+    main()
+Diaries")
             if os.path.exists(f"{eval_path}/sample_diaries.png"):
                 st.image(f"{eval_path}/sample_diaries.png")
         else:

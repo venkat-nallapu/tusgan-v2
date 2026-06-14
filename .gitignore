@@ -59,3 +59,14 @@ Thumbs.db
 
 # Logs
 *.log
+
+# error files
+wgan-gp/errors/
+
+#venv
+.venv*
+
+#logs
+scratch/
+logging.md
+DEVELOPMENT_LEDGER.md

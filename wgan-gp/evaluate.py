@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 REAL_DATA_PATH = "wgan-gp/tusgan_encoded.npz"
 FAKE_DATA_PATH = "synthetic_diaries.csv"
 OUTPUT_DIR     = "evaluation_results"
-ACT_MID        = 50.0
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -18,9 +17,11 @@ def main():
     # 1. Load Real Data and Decode
     print(f"Loading real data from {REAL_DATA_PATH}...")
     real_data = np.load(REAL_DATA_PATH)
-    real_tensors = real_data["diary_tensor"].squeeze() # (N, 48)
-    real_codes = (real_tensors + 1.0) * ACT_MID
-    real_codes = np.round(real_codes).astype(int)
+    real_tensors = real_data["diary_tensor"] # (N, 9, 48, 1)
+    
+    # In v2 (9-channel), we take the argmax across the channel dimension
+    # real_tensors shape: (N, 9, 48, 1) -> argmax over axis 1 -> (N, 48, 1) -> squeeze -> (N, 48)
+    real_codes = np.argmax(real_tensors, axis=1).squeeze() + 1 # Map 0-8 to 1-9
     
     # 2. Load Fake Data
     print(f"Loading synthetic data from {FAKE_DATA_PATH}...")
@@ -65,13 +66,14 @@ def main():
         fake_time[c] = np.mean(np.sum(fake_codes == c, axis=1)) * 30
         
     # Plot comparison for present activities
-    active_codes = np.unique(np.concatenate([unique_real, unique_fake]))
+    active_codes = np.array(range(1, 10))
     plt.figure(figsize=(12, 6))
     plt.bar(active_codes - 0.2, real_time[active_codes], width=0.4, label="Real", alpha=0.7)
     plt.bar(active_codes + 0.2, fake_time[active_codes], width=0.4, label="Synthetic", alpha=0.7)
-    plt.xlabel("Activity Code")
+    plt.xlabel("Major Division")
     plt.ylabel("Avg Minutes per Day")
-    plt.title("Time Use Comparison: Real vs Synthetic")
+    plt.title("Time Use Comparison (Major Divisions): Real vs Synthetic")
+    plt.xticks(active_codes)
     plt.legend()
     plt.grid(axis='y', linestyle='--', alpha=0.6)
     plt.savefig(os.path.join(OUTPUT_DIR, "time_use_comparison.png"))
@@ -87,11 +89,18 @@ def main():
         axes[1, i].set_title(f"Synthetic Diary {i+1}")
     
     for ax in axes.flatten():
-        ax.set_ylim(-0.5, max(active_codes) + 0.5)
-        ax.set_yticks(active_codes)
+        ax.set_ylim(0.5, 9.5)
+        ax.set_yticks(range(1, 10))
         
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, "sample_diaries.png"))
+    print(f"Saved sample diaries to {OUTPUT_DIR}/sample_diaries.png")
+    
+    print("Evaluation complete.")
+
+if __name__ == "__main__":
+    main()
+ "sample_diaries.png"))
     print(f"Saved sample diaries to {OUTPUT_DIR}/sample_diaries.png")
     
     print("Evaluation complete.")
