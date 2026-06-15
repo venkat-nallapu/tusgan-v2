@@ -15,10 +15,9 @@ dist/
 */.ipynb_checkpoints/*
 
 # Data Files (Large or Generated)
-2019/
+2019/data/
 2024/
 *.csv
-*.npz
 *.npy
 # Keep the small sample if needed, otherwise ignore all csv
 # !wgan-gp/TUS-2019-sample.csv
@@ -69,7 +68,6 @@ wgan-gp/errors/
 #logs
 scratch/
 logging.md
-DEVELOPMENT_LEDGER.md
 
 #kaggle
 .kaggle/
