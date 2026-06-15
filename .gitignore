@@ -70,3 +70,6 @@ wgan-gp/errors/
 scratch/
 logging.md
 DEVELOPMENT_LEDGER.md
+
+#kaggle
+.kaggle/
